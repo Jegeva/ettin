@@ -10,6 +10,11 @@
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 #include <ettin.h>
 

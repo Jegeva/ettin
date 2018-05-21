@@ -13,8 +13,10 @@ static int insert_rule    ( const char *table,  const char *chain,
                               unsigned int dest, int inverted_dst,
                               const char *target);
 
-static int insert_rule_str( const char *table, const char *chain,
+/*static int insert_rule_str( const char *table, const char *chain,
                               char * strsrc, int inverted_src,
                               char * strdest,int inverted_dst,
                               const char *target);
+
+*/
 #endif

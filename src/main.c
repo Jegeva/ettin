@@ -84,9 +84,9 @@ int main(int argc,char** argv)
 
     int* filter_chain_internal_fds;
     /*
-    int wr_sz,re_sz;
-    char * wr_testbuff ="abcd";
-    char * re_testbuff = calloc(5,sizeof(char));
+      int wr_sz,re_sz;
+      char * wr_testbuff ="abcd";
+      char * re_testbuff = calloc(5,sizeof(char));
     */
 
     init_default_options();
@@ -156,26 +156,25 @@ int main(int argc,char** argv)
         case 'w':
             global_params.is_wireless = 1;
             break;
-	case 'p':
-	  i=0;global_params.port_cnt=1;
-	  while(*(optarg+i) != 0){
-	    if(*(optarg+i)==','){
-	      global_params.port_cnt++;
-	      *(optarg+i)=0;	      
-	    }
-	    i++;
-	  }
-	  global_params.portlist=(unsigned int*)calloc(global_params.port_cnt,sizeof(unsigned int));
-	  j=global_params.port_cnt;tmpptr=optarg;
-	  while(j){
-	    while(*(optarg+i) != 0 && *(optarg+i) != ',')
-	      i++;
-	    j--;
-	    global_params.portlist[j] = strtol(tmpptr,&tmpptr,10);
-	    tmpptr++;
-	  }	
-	  break;
-
+        case 'p':
+            i=0;global_params.port_cnt=1;
+            while(*(optarg+i) != 0){
+                if(*(optarg+i)==','){
+                    global_params.port_cnt++;
+                    *(optarg+i)=0;
+                }
+                i++;
+            }
+            global_params.portlist=(unsigned int*)calloc(global_params.port_cnt,sizeof(unsigned int));
+            j=global_params.port_cnt;tmpptr=optarg;
+            while(j){
+                while(*(optarg+i) != 0 && *(optarg+i) != ',')
+                    i++;
+                j--;
+                global_params.portlist[j] = strtol(tmpptr,&tmpptr,10);
+                tmpptr++;
+            }
+            break;
         }
     }
 
@@ -183,9 +182,12 @@ int main(int argc,char** argv)
     if(global_params.progfilters_cnt){
         // have filters
         //    pipe(global_params.filter_chain_IO_fds);
+        printf("Fcnt=%d\n",global_params.progfilters_cnt);
         filter_chain_internal_fds = (int*)calloc(2*(global_params.progfilters_cnt+1),sizeof(int));
         for(i=0;i<=global_params.progfilters_cnt;i++){
+
             pipe(filter_chain_internal_fds+(2*i));
+            printf("pipe %d %d %d\n",i,*(filter_chain_internal_fds+(2*i)),*(filter_chain_internal_fds+(2*i)+1));
         }
         for(i=0;i<global_params.progfilters_cnt;i++){
             pid = fork ();
@@ -202,8 +204,10 @@ int main(int argc,char** argv)
                 execl(global_params.progfilters[i],global_params.progfilters[i],NULL);
             }
         }
-        global_params.filter_chain_IO_fds[0]=dup(*(filter_chain_internal_fds+1));
-        global_params.filter_chain_IO_fds[1]=dup(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))));
+        global_params.filter_chain_IO_fds[0]=(*(filter_chain_internal_fds+1));
+        global_params.filter_chain_IO_fds[1]=(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))));
+        printf(RED"infd 1 =%d\n"RESET,global_params.filter_chain_IO_fds[1]);
+        printf(RED"outfd 0 =%d\n"RESET,global_params.filter_chain_IO_fds[0]);
 
     }
 
@@ -211,7 +215,7 @@ int main(int argc,char** argv)
     if(ettin_init_pcap_device(global_params.device)){
 
         make_ip_list();
-	printf("arping\n");
+        printf("arping\n");
         arping();
         if(global_params.destinations_cnt){
             i=check_targets();
@@ -228,22 +232,21 @@ int main(int argc,char** argv)
                 start_poison();
             }
 
-	    
             /*
-            for(i=0;i<26;i++){
-                wr_sz = 4;
-                write(*(filter_chain_internal_fds+1),&wr_sz,wr_sz);
-                write(*(filter_chain_internal_fds+1),wr_testbuff,wr_sz);
-                re_sz=4;
-                read(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),&re_sz,re_sz);
-                read(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),re_testbuff,re_sz);
-                printf("%d:%d->%s\n",
-                       *(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),
-                       re_sz,
-                       re_testbuff
-                       );
+              for(i=0;i<26;i++){
+              wr_sz = 4;
+              write(*(filter_chain_internal_fds+1),&wr_sz,wr_sz);
+              write(*(filter_chain_internal_fds+1),wr_testbuff,wr_sz);
+              re_sz=4;
+              read(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),&re_sz,re_sz);
+              read(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),re_testbuff,re_sz);
+              printf("%d:%d->%s\n",
+              *(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),
+              re_sz,
+              re_testbuff
+              );
 
-            }
+              }
 
             */
             int c = 0;
@@ -251,7 +254,7 @@ int main(int argc,char** argv)
                 ETTIN_PERROR(8,"w-%d\n",c);
                 c = getchar_unlocked();
             }
-	    stop_poison();
+            stop_poison();
             // cleanup
             free_ip_list();
             ettin_pcap_cleanup();
@@ -266,5 +269,6 @@ int main(int argc,char** argv)
         free(filter_chain_internal_fds);
     }
     free(global_params.destination_ips);
+    free_mac();
     fflush(NULL);
 }

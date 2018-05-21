@@ -8,6 +8,7 @@ typedef unsigned __int128 uint128_t;
 
 #include <ettin_pcap.h>
 #include <ettin_arp.h>
+#include <ettin_mac.h>
 
 
 

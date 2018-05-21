@@ -1,6 +1,6 @@
 #include <ettin_iptc.h>
 
-
+/*
 static int insert_rule_str(
                            const char *table,
                            const char *chain,
@@ -13,7 +13,7 @@ static int insert_rule_str(
   inet_pton (AF_INET, strdest, &dst);
   return insert_rule (table,chain,src,inverted_src,dst,inverted_dst,target);
 }
-
+*/
 static int
 insert_rule (const char *table,
              const char *chain,
