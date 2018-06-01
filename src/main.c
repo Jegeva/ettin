@@ -1,4 +1,5 @@
 #include <main.h>
+#include <signal.h>
 
 extern char *optarg;
 extern int optind, opterr, optopt;
@@ -38,7 +39,13 @@ char * long_options_help[] = {
     0
 };
 
+void intHandler(int dummy) {
+    fprintf(stderr,"SIGINT\nCleaning");
+    stop_poison();
+    exit(0);
 
+
+}
 
 void print_help(char* name)
 {
@@ -90,7 +97,7 @@ int main(int argc,char** argv)
     */
 
     init_default_options();
-
+    signal(SIGINT, intHandler);
 
     while ((opt = getopt_long(argc, argv, opts, long_options, &option_index)) != -1) {
         if(!option_index){
@@ -232,23 +239,7 @@ int main(int argc,char** argv)
                 start_poison();
             }
 
-            /*
-              for(i=0;i<26;i++){
-              wr_sz = 4;
-              write(*(filter_chain_internal_fds+1),&wr_sz,wr_sz);
-              write(*(filter_chain_internal_fds+1),wr_testbuff,wr_sz);
-              re_sz=4;
-              read(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),&re_sz,re_sz);
-              read(*(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),re_testbuff,re_sz);
-              printf("%d:%d->%s\n",
-              *(filter_chain_internal_fds+(2*(global_params.progfilters_cnt))),
-              re_sz,
-              re_testbuff
-              );
 
-              }
-
-            */
             int c = 0;
             while(c!=0x20){
                 ETTIN_PERROR(8,"w-%d\n",c);

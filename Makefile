@@ -23,7 +23,7 @@ listmac.txt:
 $(PROJ_NAME).elf: $(OBJS)
 	$(CC) $^ $(LDFLAGS) -o $@
 	cp $(PROJ_NAME).elf $(PROJ_NAME).elf.stripped
-	strip $(PROJ_NAME).elf.stripped
+	strip $(PROJ_NAME).stripped.elf
 
 build/%.o: src/%.c
 	$(CC) -c $(CFLAGS) $^ -o $@
@@ -39,4 +39,4 @@ ed :
 	emacs src/*.c inc/*.h Makefile >/dev/null 2>&1 &
 
 clean:
-	rm -f $(OBJS) src/*~ inc/*~ *~
+	rm -f *.elf $(OBJS) src/*~ inc/*~ *~

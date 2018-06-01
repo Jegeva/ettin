@@ -47,6 +47,44 @@ struct
 // only call if you changed something in the pkt
 
 
+uint32_t seq_side1_h1,ack_side1_h1,seq_side1_h2,ack_side1_h2;
+uint32_t seq_side2_h1,ack_side2_h1,seq_side2_h2,ack_side2_h2;
+int32_t deltaS1, deltaS2;
+uint32_t ip_side1=0,ip_side2=0;
+
+int balance_legs(char * msg, uint32_t msgsz, uint32_t ippaystart,uint32_t tcppaystart)
+{
+    char str[INET6_ADDRSTRLEN];
+    if(ip_side1 == ip_side2){
+        //init
+        ip_side1 = *(uint32_t*)(msg+ippaystart+12);
+        ip_side2 = *(uint32_t*)(msg+ippaystart+16);
+
+        seq_side1_h1= ntohl(*(uint32_t*)(msg+tcppaystart+4));
+        ack_side1_h1= ntohl(*(uint32_t*)(msg+tcppaystart+8));
+
+        inet_ntop(AF_INET,&ip_side1,str,INET6_ADDRSTRLEN);
+        fprintf(stderr,"1:%s ",str);
+        inet_ntop(AF_INET,&ip_side2,str,INET6_ADDRSTRLEN);
+        fprintf(stderr,"2:%s\n%d %d\n",str,ippaystart,tcppaystart);
+
+    } else {
+        if(ip_side1 == *(uint32_t*)(msg+ippaystart+12)){
+            // 1->2
+            seq_side1_h1= ntohl(*(uint32_t*)(msg+tcppaystart+4));
+            ack_side1_h1= ntohl(*(uint32_t*)(msg+tcppaystart+8));
+        } else {
+            // 2->1
+            seq_side2_h2= ntohl(*(uint32_t*)(msg+tcppaystart+4));
+            ack_side2_h2= ntohl(*(uint32_t*)(msg+tcppaystart+8));
+        }
+        fprintf(stderr,"0x%.08x 0x%.08x 0x%.08x 0x%.08x\n",seq_side1_h1,ack_side1_h1,seq_side2_h2,ack_side2_h2);
+
+    }
+}
+
+
+
 int main(int argc,char** argv){
   unsigned int msgsz;
   char * msg=NULL;
@@ -75,6 +113,7 @@ int main(int argc,char** argv){
     L1_len=     L2_len=     L3_len=     L4_len=0;
 
     // assuming ETH L1
+    L1_head_len=14;
     L2_type = ntohs(*(uint16_t*)(msg+12));
 
     switch(L2_type){
@@ -88,17 +127,21 @@ int main(int argc,char** argv){
 
 
 
-
-    if(msgsz>0x40){
-        target = msg+0x40;
-        while(target){
-            target = strstr(target,"div");
-            if (target !=NULL   )
-            {
-                target++;
-                *(target)='a';
+    switch(L3_type){
+    case IPPROTO_TCP:
+        if(msgsz>0x40){
+            target = msg+0x40+20;
+            while(target){
+                target = strstr(target,"2018");
+                if (target !=NULL   )
+                {
+                    *(target+3)='9';
+                    target++;
+                }
             }
         }
+        balance_legs(msg,msgsz,L1_head_len,L1_head_len+L2_head_len);
+
     }
 
     write(STDOUT_FILENO,&msgsz,4);
