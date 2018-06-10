@@ -26,7 +26,6 @@ unsigned char arp_structure_raw[] = {
 #define ARP_OFF_TARGMAC    32
 #define ARP_OFF_TARGIP     38
 
-
 unsigned char * arp_raw = NULL;
 struct bpf_program * fp_thread;
 struct timeval started;
@@ -35,8 +34,6 @@ pthread_t poisoncap_thread;
 pthread_t poisoninject_thread;
 pthread_t timeout_thread;
 pthread_t poison_thread;
-
-
 
 struct argpoison {
     int num_victims;
@@ -50,8 +47,6 @@ void correct_checksum(char* pkt,int sz){
     uint16_t L1_len,     L2_len,     L3_len,     L4_len;
     uint32_t chk,i,crc;
 
-
-
     L1_type=    L2_type=    L3_type=    L4_type=0;
     L1_head_len=L2_head_len=L3_head_len=L4_head_len=0;
     L1_len=     L2_len=     L3_len=     L4_len=0;
@@ -62,7 +57,6 @@ void correct_checksum(char* pkt,int sz){
     // ethernet for now, no fancy vlan tagging yet
     L2_type = ntohs(*(uint16_t*)(pkt+12));
 
-
     // fprintf(stderr,"0x%x",eth_type);
     switch(L1_type){ // later, eth now
     default:
@@ -71,8 +65,8 @@ void correct_checksum(char* pkt,int sz){
 
         ;
         break;
-
     }
+
     switch(L2_type){
     case ETH_P_IP:
         //fputc('4',stderr);
@@ -98,9 +92,6 @@ void correct_checksum(char* pkt,int sz){
             fprintf(stderr,RED"Correcting ip chksum %x %x" RESET  , *(uint16_t*)(pkt+L1_head_len+10) , chk);
             *(uint16_t*)(pkt+L1_head_len+10) = chk;
         }
-
-
-
         //     fprintf(stderr," 2hl:%d 2t:%hhu 2tl:%hu",L2_head_len,L3_type,L2_len);
         break;
     case ETH_P_ARP:
@@ -155,7 +146,6 @@ void correct_checksum(char* pkt,int sz){
             *(uint16_t*)(pkt+L1_head_len+L2_head_len+16)= chk;
         }
 
-
         break;
     case IPPROTO_UDP:
         //fprintf(stderr,"U\n");
@@ -196,7 +186,6 @@ void correct_checksum(char* pkt,int sz){
             *(uint16_t*)(pkt+L1_head_len+L2_head_len+6)= chk;
         }
 
-
         break;
     case IPPROTO_ICMP:
         //fprintf(stderr,"I\n");
@@ -222,9 +211,6 @@ void correct_checksum(char* pkt,int sz){
         // exit(0);
         break;
     }
-
-
-
     fputc('\n',stderr);
 
 }
@@ -249,7 +235,6 @@ void poisonning_callback(u_char *user,const struct pcap_pkthdr* pkthdr,const u_c
   }
   fflush(NULL);
 }
-
 
 volatile int bkhelp=0;
 
@@ -362,7 +347,6 @@ void * start_asyncpoisoncap(void * argptr)
 
 void antidote()
 {
-
     IP4_arp_state_t * curr_ip_list = IP4_arp_state_head;
     IP4_arp_state_t ** victims_ip_list;
     int num_victims=0;
@@ -434,6 +418,7 @@ void * poison(void * argptr){
       memcpy(buffer+ARP_OFF_TARGMAC0,&victims_ip_list[i]->mac_addr,6);
       memcpy(buffer+ARP_OFF_TARGMAC ,&victims_ip_list[i]->mac_addr,6);
       memcpy(buffer+ARP_OFF_TARGIP ,&victims_ip_list[i]->ip4_n,4);
+
       for(j=0;j<num_victims;j++){
         if(j!=i){
           memcpy(buffer+ARP_OFF_SENDERIP,&victims_ip_list[j]->ip4_n,4);
@@ -452,7 +437,6 @@ void * poison(void * argptr){
   }
   return NULL;
 }
-
 
 void start_poison(){
   //  printf("S P\n");
@@ -483,7 +467,6 @@ void start_poison(){
   argpoison.num_victims = num_victims;
   argpoison.victims_ip_list=victims_ip_list;
   
-
   if(pthread_create(&poisoncap_thread, NULL, start_asyncpoisoncap, NULL)) {
     fprintf(stderr, "Error creating poison_capping thread\n");
     fflush(NULL);
@@ -538,11 +521,6 @@ void print_ip_list()
   free(ippbuff);
 }
 
-
-
-
-
-
 void free_ip_list()
 {
   IP4_arp_state_t * curr_ip_list = IP4_arp_state_head;
@@ -562,9 +540,6 @@ void free_ip_list()
   free(curr_ip_list->ip4_string);
   free(IP4_arp_state_head);
 }
-
-
-
 
 void arping_callback(u_char *user,const struct pcap_pkthdr* pkthdr,const u_char* packet)
 {
@@ -611,44 +586,6 @@ void arping_callback(u_char *user,const struct pcap_pkthdr* pkthdr,const u_char*
 
 }
 
-
-/*
-
-void * timeout_asynccap(void * argptr){
-  struct timeval now;
-
-  //  usleep(4*1000000);
-
-  usleep(255*50000);
-  gettimeofday(&now,NULL);
-  printf("%fs\n", ((now.tv_sec * 1000000 + now.tv_usec) - (started.tv_sec * 1000000 + started.tv_usec)) /1000000.0);
-  pcap_breakloop(pcap_device_infos.handle);
-  //pthread_kill(cap_thread, SIGUSR1);
-  pthread_cancel(cap_thread);
-
-  if(pthread_join(cap_thread, NULL)) {
-    fprintf(stderr, "Error joining capture thread\n");
-  }else{
-    ETTIN_PERROR(2,"Joined thread capture\n");
-  }
-  int r;
-  /// clean the pcap break flag
-  do{
-    r = pcap_loop(pcap_device_infos.handle, -1, arping_callback, NULL);
-    //  printf("r1  %d\n", r);
-  }
-  while(r!=-2);
-
-  // pthread_kill(cap_thread,SIGHUP);
-  gettimeofday(&started,NULL);
-  pcap_setfilter(pcap_device_infos.handle,pcap_device_infos.fp);
-  pcap_freecode(fp_thread);
-  free(fp_thread);
-  //    printf("timeou cap\n");
-  return NULL;
-}
-*/
-
 void * start_asynccap(void * argptr)
 {
   fp_thread =(struct bpf_program *)malloc(sizeof(struct bpf_program));
@@ -678,7 +615,6 @@ void * start_asynccap(void * argptr)
   return NULL;
 }
 
-
 void arping()
 {
   IP4_arp_state_t * curr_ip_list = IP4_arp_state_head;
@@ -702,8 +638,6 @@ void arping()
     fprintf(stderr, "Error creating capture thread\n");
     exit(0);
   }
-
-
   // getting local tables known device in unicast
 
   fp= fopen("/proc/net/arp","r");
@@ -719,7 +653,6 @@ void arping()
               curr_ip_list = curr_ip_list->next;
               if((curr_ip_list == NULL))
                   break;
-
           }
 
           if(curr_ip_list != NULL){
@@ -744,8 +677,6 @@ void arping()
 
       }
   }
-
-
 
   /* if(pthread_create(&timeout_thread, NULL,timeout_asynccap , NULL)) {
     fprintf(stderr, "Error creating timeout thread\n");
@@ -786,7 +717,6 @@ void arping()
     curr_ip_list=curr_ip_list->next;
   }
 
-
   pcap_breakloop(pcap_device_infos.handle);
   //	putchar('\n');
   if(pthread_join(cap_thread, NULL)) {
@@ -796,11 +726,8 @@ void arping()
   }
 
   fflush(NULL);
-
-
   free(buffer);
 }
-
 
 void rand_ip_list()
 {
@@ -845,7 +772,6 @@ void rand_ip_list()
     if(curr_ip_list->prev == NULL)
       IP4_arp_state_head=targ_ip_list;
 
-
     tmp_ip_list->next = targ_ip_list->next;
     tmp_ip_list->prev = targ_ip_list->prev;
 
@@ -866,14 +792,10 @@ void rand_ip_list()
     curr_ip_list->prev = tmp_ip_list->prev;
 
     //	printf("POST %d %d\t%14p %14p %14p\t%14p %14p %14p\n\n",j,qt,curr_ip_list,curr_ip_list->prev,curr_ip_list->next,targ_ip_list,targ_ip_list->prev,targ_ip_list->next );
-	
-
-
     j--;
   }
   free(tmp_ip_list);
 }
-
 
 void make_ip_list() {
   char * ippbuff = (char*) calloc (INET6_ADDRSTRLEN,sizeof(char));

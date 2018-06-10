@@ -18,6 +18,6 @@ int check_targets(){
     }
     curr_ip_list=curr_ip_list->next;
   }
-
+  
   return j;
 }
